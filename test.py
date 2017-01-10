@@ -1,11 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from apk import APK
+import sys
+from apk_parse.apk import APK
 
 
 def test():
-    apk_path = "/home/tdoly/com.android.vending_090150.apk"
+    if len(sys.argv) == 1:
+        print('Usage: %s app.apk' % sys.argv[0])
+        sys.exit(1)
+
+    apk_path = sys.argv[1]
     apkf = APK(apk_path)
     print apkf.cert_text
     print apkf.file_md5
