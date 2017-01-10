@@ -44,7 +44,7 @@ def test():
     print(binascii.hexlify(apkf.get_signature()))
     print(apkf.get_signature_name())
 
-    # print apkf.show()
+    print apkf.show()
     # apkf.parse_icon(icon_path='/tmp')
 
 if __name__ == "__main__":
