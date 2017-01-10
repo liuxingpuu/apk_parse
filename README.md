@@ -1,9 +1,31 @@
 ## APK parse
 
-   reference [androguard][androguard-url].
+ * reference [androguard][androguard-url].
+ * fork of [apk_parse]
 
-   
+[apk_parse]: https://github.com/tdoly/apk_parse
 [androguard-url]: https://github.com/androguard/androguard
+
+# Installation MacOS X
+
+If there are problems with installing `m2crypto` on Mac, try this:
+```
+brew install openssl
+brew install swig
+env LDFLAGS="-L$(brew --prefix openssl)/lib" \
+    CFLAGS="-I$(brew --prefix openssl)/include" \
+    SWIG_FEATURES="-cpperraswarn -includeall -I$(brew --prefix openssl)/include" \
+    pip install m2crypto
+```
+
+or
+
+```
+LDFLAGS="-L/opt/local/lib" \
+    CFLAGS="-I/opt/local/include" \
+    SWIG_FEATURES="-cpperraswarn -includeall -I/opt/local/include" \
+    pip install --user m2crypto
+```
 
 ## Example:
 
