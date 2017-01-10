@@ -169,6 +169,9 @@ class APK(object):
         self.valid_apk = False
 
         self.cert_text = ""
+        self.cert_pem = ""
+        self.cert_der = ""
+        self.cert_raw = ""
         self.cert_md5 = ""
         self.file_md5 = ""
         self.file_size = ""
@@ -228,6 +231,9 @@ class APK(object):
         sk3 = p7.get0_signers(M2Crypto.X509.X509_Stack())
         cert = sk3.pop()
         self.cert_text = cert.as_text()
+        self.cert_pem = cert.as_pem()
+        self.cert_der = cert.as_der()
+        self.cert_raw = cert
         self.cert_md5 = get_md5(cert.as_der())
 
     def is_valid_APK(self):
