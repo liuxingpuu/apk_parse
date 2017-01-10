@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import binascii
 from apk_parse.apk import APK
 
 
@@ -13,6 +14,7 @@ def test():
     apk_path = sys.argv[1]
     apkf = APK(apk_path)
     print apkf.cert_text
+    print apkf.cert_pem
     print apkf.file_md5
     print apkf.cert_md5
     print apkf.file_size
@@ -39,6 +41,8 @@ def test():
     print apkf.get_receivers()
     print apkf.get_providers()
     print apkf.get_permissions()
+    print binascii.hexlify(apkf.get_signature())
+    print apkf.get_signature_name()
 
     # print apkf.show()
     # apkf.parse_icon(icon_path='/tmp')
