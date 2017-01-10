@@ -6,6 +6,12 @@
 [apk_parse]: https://github.com/tdoly/apk_parse
 [androguard-url]: https://github.com/androguard/androguard
 
+# Pip
+
+```
+pip install apk_parse_ph4
+```
+
 # Installation MacOS X
 
 If there are problems with installing `m2crypto` on Mac, try this:
