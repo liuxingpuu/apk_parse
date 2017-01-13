@@ -252,6 +252,9 @@ class APK(object):
                     raise Exception('Temp dir does not exist: ' + self.temp_dir)
 
                 sub_apk_input = os.path.join(self.temp_dir, slugify(self.inner_apk))
+                if os.path.exists(sub_apk_input):
+                    os.remove(sub_apk_input)
+
                 copy_zip_file(self.zip, self.inner_apk, sub_apk_input)
                 self.tmp_sub_apk_path = sub_apk_input
                 self.sub_apk_size = os.path.getsize(self.tmp_sub_apk_path)
