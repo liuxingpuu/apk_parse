@@ -29,7 +29,7 @@ import M2Crypto
 import androconf
 import bytecode
 from dvm_permissions import DVM_PERMISSIONS
-from util import read, get_md5
+from util import read, get_md5, get_md5_file, slugify, copy_zip_file
 
 NS_ANDROID_URI = 'http://schemas.android.com/apk/res/android'
 
@@ -150,13 +150,18 @@ class APK(object):
         :type mode: string
         :type magic_file: string
         :type zipmodule: int
+        :type process_now: boolean if True process the APK now - backward compatibility
+        :type process_file_types: boolean whether to process all files included
+        :type as_file_name: boolean treat filename as file name, not data
+        :type temp_dir: string temporary directory to unpack sub apk files into
 
         :Example:
           APK("myfile.apk")
           APK(read("myfile.apk"), raw=True)
     """
 
-    def __init__(self, filename, raw=False, mode="r", magic_file=None, zipmodule=ZIPMODULE):
+    def __init__(self, filename, raw=False, mode="r", magic_file=None, zipmodule=ZIPMODULE,
+                 process_now=True, process_file_types=True, as_file_name=False, temp_dir=None):
         self.filename = filename
 
         self.xml = {}
@@ -180,30 +185,105 @@ class APK(object):
         self.files_crc32 = {}
 
         self.magic_file = magic_file
-
-        if raw:
-            self.__raw = filename
-        else:
-            self.__raw = read(filename)
-
+        self.filename = filename
+        self.raw = raw
+        self.mode = mode
         self.zipmodule = zipmodule
-        self.file_size = len(self.__raw)
-        self.file_md5 = get_md5(self.__raw)
 
-        if zipmodule == 0:
+        self.process_file_types = process_file_types
+        self.as_file_name = as_file_name
+        self.temp_dir = temp_dir
+
+        self.__raw = None
+        self.zip = None
+
+        self.manifest_json_present = False
+        self.android_manifest_present = False
+        self.cert_present = False
+        self.inner_apk = None
+        self.inner_apk_all = []
+        self.tmp_sub_apk_path = None
+
+        if process_now:
+            self.process()
+
+    def process(self):
+        """
+        Parse the APK file
+        :return:
+        """
+        if self.raw or self.as_file_name:
+            self.__raw = self.filename
+        else:
+            self.__raw = read(self.filename)
+
+        if not self.as_file_name:
+            self.file_size = len(self.__raw)
+            self.file_md5 = get_md5(self.__raw)
+        else:
+            self.file_size = os.path.getsize(self.filename)
+            if self.file_md5 is None or len(self.file_md5) == 0:
+                self.file_md5 = get_md5_file(self.filename)
+
+        # APK processing itself, ZIP init.
+        if self.zipmodule == 0:
             self.zip = ChilkatZip(self.__raw)
         else:
-            self.zip = zipfile.ZipFile(StringIO.StringIO(self.__raw), mode=mode)
+            zip_input = StringIO.StringIO(self.__raw) if not self.as_file_name else self.filename
+            self.zip = zipfile.ZipFile(zip_input, mode=self.mode)
 
-        for i in self.zip.namelist():
+        # Process apk, file scan
+        self.process_apk(self.zip)
+
+        # Detect if it is sub-apk and parse it if is.
+        if not self.android_manifest_present and not self.cert_present and self.inner_apk is not None:
+            # Is temporary directory available?
+            sub_apk_input = None
+            sub_apk_is_filename = False
+
+            # If temp_dir is set, extract sub-apk to temp dir, otherwise use memory only.
+            if self.temp_dir is not None:
+                if not os.path.exists(self.temp_dir):
+                    raise Exception('Temp dir does not exist: ' + self.temp_dir)
+
+                sub_apk_input = os.path.join(self.temp_dir, slugify(self.inner_apk))
+                copy_zip_file(self.zip, self.inner_apk, sub_apk_input)
+                self.tmp_sub_apk_path = sub_apk_input
+                sub_apk_is_filename = True
+            else:
+                sub_apk_input = self.zip.read(self.inner_apk)
+
+            sub_zip_input = StringIO.StringIO(sub_apk_input) if not sub_apk_is_filename else sub_apk_input
+            sub_zip = zipfile.ZipFile(sub_zip_input, mode=self.mode)
+            self.process_apk(sub_zip)
+
+        if self.process_file_types:
+            self.get_files_types()
+
+    def process_apk(self, zip):
+        """
+        Processes given zip file.
+        Also used for processing nested APKfiles / xapks.
+        :param zip:
+        :return:
+        """
+        for i in zip.namelist():
+            if i.lower() == 'manifest.json':
+                self.manifest_json_present = True
+
+            if i.endswith('.apk'):
+                self.inner_apk_all.append(i)
+                self.inner_apk = i
+
             if i == "AndroidManifest.xml":
-                self.axml[i] = AXMLPrinter(self.zip.read(i))
+                self.android_manifest_present = True
+                self.axml[i] = AXMLPrinter(zip.read(i))
                 try:
                     self.xml[i] = minidom.parseString(self.axml[i].get_buff())
                 except:
                     self.xml[i] = None
 
-                if self.xml[i] != None:
+                if self.xml[i] is not None:
                     self.package = self.xml[i].documentElement.getAttribute("package")
                     self.androidversion["Code"] = self.xml[i].documentElement.getAttributeNS(NS_ANDROID_URI,
                                                                                              "versionCode")
@@ -217,16 +297,20 @@ class APK(object):
 
             re_cert = re.compile(r'meta-inf(/|\\).*\.(rsa|dsa)')
             if re_cert.match(i.lower()):
-                self.parse_cert(i)
+                self.cert_present = True
+                self.parse_cert(i, zip=zip)
 
-        self.get_files_types()
-
-    def parse_cert(self, cert_fname):
+    def parse_cert(self, cert_fname, zip=None):
         """
-            parse the cert text and md5
+        Parse the cert text and md5
         :param cert_fname:
+        :param zip:
+        :return:
         """
-        input_bio = M2Crypto.BIO.MemoryBuffer(self.zip.read(cert_fname))
+        if zip is None:
+            zip = self.zip
+
+        input_bio = M2Crypto.BIO.MemoryBuffer(zip.read(cert_fname))
         p7 = M2Crypto.SMIME.PKCS7(M2Crypto.m2.pkcs7_read_bio_der(input_bio._ptr()), 1)
         sk3 = p7.get0_signers(M2Crypto.X509.X509_Stack())
         cert = sk3.pop()

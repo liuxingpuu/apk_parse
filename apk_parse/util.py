@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import hashlib
+import re
 
 
 def read(filename, binary=True):
@@ -26,3 +27,48 @@ def get_md5(buf):
     m = hashlib.md5()
     m.update(buf)
     return m.hexdigest().lower()
+
+
+def get_md5_file(file_name, chunk_size=32768):
+    m = hashlib.md5()
+    with open(file_name, 'rb') as f:
+        while True:
+            data = f.read(chunk_size)
+            if not data:
+                break
+            m.update(data)
+    return m.hexdigest().lower()
+
+
+def slugify(value):
+    """
+    Normalizes string, converts to lowercase, removes non-alpha characters,
+    and converts spaces to hyphens.
+    """
+    import unicodedata
+    value = unicodedata.normalize('NFKD', unicode(value)).encode('ascii', 'ignore')
+    value = unicode(re.sub('[^\w\s\-.]', '', value).strip())
+    value = unicode(re.sub('[-\s]+', '-', value))
+    return value
+
+
+def copy_zip_file(zip, name, dest_file_path, chunk_size=32768):
+    """
+    Copies file from the zip archive (extracts) to the normal file.
+    :param zip:
+    :param name:
+    :param dest_file_path:
+    :param chunk_size:
+    :return:
+    """
+    with zip.open(name, 'r') as zf:
+        with open(dest_file_path, 'wb') as fh:
+            while True:
+                data = zf.read(chunk_size)
+                if not data:
+                    break
+                fh.write(data)
+            fh.flush()
+    pass
+
+
