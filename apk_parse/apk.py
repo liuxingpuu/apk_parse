@@ -196,6 +196,10 @@ class APK(object):
 
         self.__raw = None
         self.zip = None
+        self.root_zip = None
+
+        self.is_xapk = False
+        self.sub_apk_size = None
 
         self.manifest_json_present = False
         self.android_manifest_present = False
@@ -233,6 +237,7 @@ class APK(object):
             self.zip = zipfile.ZipFile(zip_input, mode=self.mode)
 
         # Process apk, file scan
+        self.root_zip = self.zip
         self.process_apk(self.zip)
 
         # Detect if it is sub-apk and parse it if is.
@@ -249,18 +254,22 @@ class APK(object):
                 sub_apk_input = os.path.join(self.temp_dir, slugify(self.inner_apk))
                 copy_zip_file(self.zip, self.inner_apk, sub_apk_input)
                 self.tmp_sub_apk_path = sub_apk_input
+                self.sub_apk_size = os.path.getsize(self.tmp_sub_apk_path)
                 sub_apk_is_filename = True
             else:
                 sub_apk_input = self.zip.read(self.inner_apk)
+                self.sub_apk_size = len(sub_apk_input)
 
             sub_zip_input = StringIO.StringIO(sub_apk_input) if not sub_apk_is_filename else sub_apk_input
             sub_zip = zipfile.ZipFile(sub_zip_input, mode=self.mode)
-            self.process_apk(sub_zip)
+            self.process_apk(zip=sub_zip, root_parse=False)
+            self.is_xapk = True
+            self.zip = sub_zip
 
         if self.process_file_types:
             self.get_files_types()
 
-    def process_apk(self, zip):
+    def process_apk(self, zip, root_parse=True):
         """
         Processes given zip file.
         Also used for processing nested APKfiles / xapks.
@@ -268,10 +277,10 @@ class APK(object):
         :return:
         """
         for i in zip.namelist():
-            if i.lower() == 'manifest.json':
+            if root_parse and i.lower() == 'manifest.json':
                 self.manifest_json_present = True
 
-            if i.endswith('.apk'):
+            if root_parse and i.endswith('.apk'):
                 self.inner_apk_all.append(i)
                 self.inner_apk = i
 
