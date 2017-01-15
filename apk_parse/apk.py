@@ -25,6 +25,7 @@ from xml.sax.saxutils import escape
 from zlib import crc32
 
 import M2Crypto
+from pyx509.models import PKCS7
 
 import androconf
 import bytecode
@@ -40,6 +41,9 @@ ZIPMODULE = 1
 
 import sys
 import zipfile
+import logging
+
+logger = logging.getLogger(__name__)
 
 if sys.hexversion < 0x2070000:
     try:
@@ -178,6 +182,7 @@ class APK(object):
         self.cert_der = ""
         self.cert_raw = ""
         self.cert_md5 = ""
+        self.pkcs7_der = ""
         self.file_md5 = ""
         self.file_size = ""
 
@@ -322,15 +327,19 @@ class APK(object):
         if zip is None:
             zip = self.zip
 
-        input_bio = M2Crypto.BIO.MemoryBuffer(zip.read(cert_fname))
+        p7file = zip.read(cert_fname)
+
+        input_bio = M2Crypto.BIO.MemoryBuffer(p7file)
         p7 = M2Crypto.SMIME.PKCS7(M2Crypto.m2.pkcs7_read_bio_der(input_bio._ptr()), 1)
         sk3 = p7.get0_signers(M2Crypto.X509.X509_Stack())
         cert = sk3.pop()
+
         self.cert_text = cert.as_text()
         self.cert_pem = cert.as_pem()
         self.cert_der = cert.as_der()
         self.cert_raw = cert
         self.cert_md5 = get_md5(cert.as_der())
+        self.pkcs7_der = p7file
 
     def is_valid_APK(self):
         """
