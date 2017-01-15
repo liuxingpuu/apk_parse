@@ -25,7 +25,6 @@ from xml.sax.saxutils import escape
 from zlib import crc32
 
 import M2Crypto
-from pyx509.models import PKCS7
 
 import androconf
 import bytecode
