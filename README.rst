@@ -51,8 +51,8 @@ Extended example:
 
 The following example processes APK in a separate call. `as_file_name` set to True causes the file is
 not read whole to the memory, but it used as a file - ZIP module does seek if needed. In this way also
-big (e.g., 1.5 GB) apks can be loaded. `temp_dir` option allows APK processor to use temporary dir, e.g.
-for xapk format, where sub-APK needs to be parsed
+big apks (e.g., 1.5 GB) can be processed. `temp_dir` option allows APK processor to use temporary dir, e.g.
+for xapk format, where sub-APK needs to be parsed:
 
 .. code-block:: python
 
