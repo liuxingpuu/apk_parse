@@ -3,7 +3,7 @@ import sys
 from setuptools import setup
 from setuptools import find_packages
 
-version = '0.1.6'
+version = '0.1.7'
 
 # Please update tox.ini when modifying dependency version requirements
 install_requires = [
@@ -38,10 +38,13 @@ setup(
     name='apk_parse_ph4',
     version=version,
     description='APK parsing tools',
-    url='https://deadcode.me',
+    url='https://github.com/ph4r05/apk_parse/',
     author='Dusan Klinec (ph4r05)',
     author_email='dusan.klinec@gmail.com',
-    license='Apache2',
+    maintainer='Dusan Klinec ph4r05',
+    maintainer_email='dusan.klinec@gmail.com',
+    license=open('LICENSE').read(),
+    long_description=open('README.rst').read(),
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
