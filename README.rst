@@ -18,7 +18,7 @@ Installation MacOS X
 
 If there are problems with installing ``m2crypto`` on Mac, try this:
 
-::
+.. code-block:: bash
 
     brew install openssl
     brew install swig
@@ -29,7 +29,7 @@ If there are problems with installing ``m2crypto`` on Mac, try this:
 
 or
 
-::
+.. code-block:: bash
 
     LDFLAGS="-L/opt/local/lib" \
         CFLAGS="-I/opt/local/include" \
@@ -39,11 +39,12 @@ or
 Example:
 --------
 
-::
+.. code-block:: python
 
 
         apkf = APK("myfile.apk")
         apkf = APK(read("myfile.apk"), raw=True)
+
 
 Extended example:
 -----------------
@@ -51,12 +52,13 @@ Extended example:
 The following example processes APK in a separate call. `as_file_name` set to True causes the file is
 not read whole to the memory, but it used as a file - ZIP module does seek if needed. In this way also
 big (e.g., 1.5 GB) apks can be loaded. `temp_dir` option allows APK processor to use temporary dir, e.g.
-for xapk format, where sub-APK needs to be parsed::
+for xapk format, where sub-APK needs to be parsed .. code-block:: python
 
 
         apkf = APK(apk_path, process_now=False, process_file_types=False, as_file_name=True, temp_dir='/tmp')
         apkf.file_md5 = 'abcd0102037292'  # skips MD5 recomputing (if already computed during download)
         apkf.process()
+
 
 package
 ~~~~~~~
@@ -284,6 +286,8 @@ Parse ICON of the apk, storage on icon\_path
 cert\_text
 ~~~~~~~~~~
 
+Returns developer certificate in a textual form
+
 ::
 
 
@@ -295,6 +299,8 @@ cert\_text
 cert\_pem
 ~~~~~~~~~
 
+Returns developer certificate in PEM form
+
 ::
 
 
@@ -305,6 +311,8 @@ cert\_pem
 
 pkcs7\_der
 ~~~~~~~~~~
+
+Returns the signature file in DER form (contains signature & certificate)
 
 ::
 
